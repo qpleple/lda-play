@@ -18,11 +18,17 @@ def bowCorpus(root_path):
         stop_words    = 'english'
     )
 
-    print "Converting to bag of word"
+    print "Computing bag of word representation"
     counts = cv.fit_transform(filenames)
     print "Vocabulary of", colored(len(cv.vocabulary_), 'green'), "terms"
 
-    return counts
+    print "Convert into a lists of tuples"
+    # [[]] * n would put the same instance of [] n times
+    corpus = [[] for _ in range(max(counts.row) + 1)]
+    for (r, c, d) in zip(counts.row, counts.col, counts.data):
+        corpus[r].append((c, d))
+
+    return corpus
 
 
 
