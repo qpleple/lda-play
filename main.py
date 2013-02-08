@@ -1,45 +1,48 @@
 import os, sys, logging
 from termcolor import colored, cprint
-from sklearn.feature_extraction.text import CountVectorizer
-from gensim import corpora, models, similarities
+from gensim import corpora, models, similarities, utils
+from progressbar import *
+from cPickle import load, dump
 
 logging.basicConfig(format = '%(levelname)s: %(message)s', level = logging.INFO)
+
+widgets = [SimpleProgress(), ' ', Bar(marker='-',left='[',right=']'), ' ',
+    ETA(), ' (at', FileTransferSpeed(unit='it'), ')', ]
+pbar = ProgressBar(widgets = widgets)
+
      
 def bowCorpus(root_path):
-    save_to = root_path + '-words'
-
+    vocab = corpora.dictionary.Dictionary()
+    corpus = []
     filenames = [os.path.join(root_path, f) for f in os.listdir(root_path)]
+    
     print colored(len(filenames), 'green'), "files found in", colored(root_path, 'green')
     
-    cv = CountVectorizer(
-        input         = 'filename',
-        charset_error = 'ignore',
-        strip_accents = 'ascii',
-        stop_words    = 'english'
-    )
+    print "Converting each file into bag-of-word:"
+    for fname in pbar(filenames):
+        with open(fname, 'r') as f:
+            content = f.read()
 
-    print "Computing bag of word representation"
-    counts = cv.fit_transform(filenames)
-    print "Vocabulary of", colored(len(cv.vocabulary_), 'green'), "terms"
+        tokens = utils.lemmatize(content)
+        # lemmatize return strings like 'moderate/VB' or 'listing/NN'
+        tokens = [x.split('/')[0] for x in tokens]
+        bow = vocab.doc2bow(tokens, allow_update = True)
+        corpus.append(bow)
 
-    print "Convert into a lists of tuples"
-    # [[]] * n would put the same instance of [] n times
-    corpus = [[] for _ in range(max(counts.row) + 1)]
-    for (r, c, d) in zip(counts.row, counts.col, counts.data):
-        corpus[r].append((c, d))
-
-    return corpus
-
-
+    return corpus, vocab
 
 corpus = {'20news': '/Users/qt/Desktop/research-data/20news/all'}
 for name, path in corpus.items():
     print "Corpus", colored(name, 'green')
-    corpus = bowCorpus(path)
-    tfidf = models.TfidfModel(corpus)
-
-
-# http://scikit-learn.org/dev/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html#sklearn.feature_extraction.text.CountVectorizer.fit
-# http://scikit-learn.github.com/scikit-learn-tutorial/working_with_text_data.html
-# http://radimrehurek.com/gensim/tutorial.html#id2
-# http://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.coo_matrix.html#scipy.sparse.coo_matrix
+    save_to = path + '-output'
+    if not os.path.exists(save_to):
+        os.makedirs(save_to)
+    corpus_path = os.path.join(save_to, 'corpus.pickle')
+    vocab_path  = os.path.join(save_to, 'corpus.vocab')
+    if os.path.exists(corpus_path):
+        print colored(corpus_path, 'green'), "already exists"
+        continue
+    corpus, vocab = bowCorpus(path)
+    dump(corpus, open(corpus_path, 'w'))
+    dump(vocab, open(vocab_path, 'w'))
+    
