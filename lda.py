@@ -1,8 +1,11 @@
+#!/usr/bin/env python
+
 import os, sys, logging
 from termcolor import colored, cprint
 from gensim import corpora, models, similarities, utils
 from progressbar import *
 from cPickle import load, dump
+from utils import *
 
 logging.basicConfig(format = '%(levelname)s: %(message)s', level = logging.INFO)
 
@@ -50,13 +53,6 @@ def bowCorpuses(paths):
         dump(corpus, open(corpus_path, 'w'))
         dump(vocab, open(vocab_path, 'w'))
 
-def bytesString(bytes):
-    power = int(math.log(bytes, 1000))
-    scaled = bytes / 1000.**power
-    prefixes = ' kMGT'
-    return '%.1f %sB' % (scaled, prefixes[power])
-
-
 def ldaCorpuses(paths):
     cprint("{0:.^80}".format(" LDA "), 'yellow')
     for name, path in paths.items():
@@ -82,18 +78,28 @@ def ldaCorpuses(paths):
         lda = models.ldamodel.LdaModel(
             corpus       = corpus,
             id2word      = vocab,
-            num_topics   = 100,
+            num_topics   = 50,
             update_every = 0,
-            passes       = 50
+            passes       = 1000
         )
 
         lda.save(lda_path)
-        
 
+
+# -- versions --
+
+# 20news
+# v1: 100 topics, 500 passes
+# v2: 15 topics, 500 passes
+# current: 50 topics, 1000 passes
+
+# nips
+# v1: 100 topics, 500 passes
+# current: 50 topics, 1000 passes
 
 paths = {
-    '20news': '/Users/qt/Desktop/research-data/20news/all',
-    'nips'  : '/Users/qt/Desktop/research-data/nips/all',
+    '20news': '/Users/qt/research-data/20news/all',
+    'nips'  : '/Users/qt/research-data/nips/all',
 }
 bowCorpuses(paths)
 ldaCorpuses(paths)
