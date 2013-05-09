@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# imports
 import os, sys, logging
 from termcolor import colored, cprint
 from gensim import corpora, models, similarities, utils
